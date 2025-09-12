@@ -1,0 +1,200 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: virtual-garage-api
+    
+  profiles:
+    active: dev
+    
+  datasource:
+    url: jdbc:postgresql://localhost:5432/virtualgarage
+    username: ${DB_USERNAME:virtualgarage}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        show_sql: false
+        use_sql_comments: true
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+          
+  flyway:
+    enabled: false
+    # Temporarily disabled due to PostgreSQL 16.3 compatibility
+    
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          
+  cache:
+    type: redis
+    redis:
+      time-to-live: 900000 # 15 minutes
+      cache-null-values: false
+      
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+    consumer:
+      group-id: virtualgarage-api
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "com.virtualgarage.*"
+        
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      
+  security:
+    jwt:
+      secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890}
+      access-token-expiration: 900000 # 15 minutes
+      refresh-token-expiration: 604800000 # 7 days
+      
+# Camel Configuration
+camel:
+  springboot:
+    name: virtual-garage-camel
+  component:
+    kafka:
+      brokers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    http:
+      connection-timeout: 30000
+      so-timeout: 60000
+      
+# OpenAPI Documentation
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  info:
+    title: Virtual Garage API
+    description: REST API for Virtual Garage application
+    version: 1.0.0
+    contact:
+      name: Virtual Garage Team
+      email: support@virtualgarage.com
+    license:
+      name: MIT License
+      url: https://opensource.org/licenses/MIT
+      
+# AWS S3 Configuration
+aws:
+  s3:
+    bucket: ${S3_BUCKET_NAME:virtualgarage-files}
+    region: ${AWS_REGION:us-east-1}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    
+# External APIs
+external:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    base-url: https://api.openai.com/v1
+    model: gpt-4
+    timeout: 30s
+    
+  vin-decoder:
+    base-url: ${VIN_DECODER_URL:https://api.vindecoder.eu/3.2}
+    api-key: ${VIN_DECODER_API_KEY:}
+    
+  parts-catalog:
+    rockauto:
+      base-url: ${ROCKAUTO_API_URL:https://api.rockauto.com}
+      api-key: ${ROCKAUTO_API_KEY:}
+    autozone:
+      base-url: ${AUTOZONE_API_URL:https://api.autozone.com}
+      api-key: ${AUTOZONE_API_KEY:}
+      
+# Application Configuration
+app:
+  cors:
+    allowed-origins: 
+      - http://localhost:3000
+      - http://localhost:5173
+      - https://virtualgarage.com
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+    
+  rate-limit:
+    enabled: true
+    requests-per-minute: 100
+    requests-per-hour: 1000
+    
+  search:
+    max-results: 50
+    cache-ttl: 1800 # 30 minutes
+    
+# Management and Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        
+# Logging
+logging:
+  level:
+    com.virtualgarage: INFO
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.apache.camel: INFO
+    root: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/virtualgarage-api.log
+    max-size: 100MB
+    max-history: 10
