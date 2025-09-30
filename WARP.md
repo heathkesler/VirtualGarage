@@ -99,6 +99,33 @@ npm run preview
 npm run lint
 ```
 
+### UI Services Management
+
+The project includes a dedicated WARP 2.0 workflow script to kill all UI development servers and processes.
+
+```bash
+# Execute the UI services killer from project root
+./scripts/kill-ui-services.sh
+
+# Force-kill without confirmation (use with caution)
+./scripts/kill-ui-services.sh -f
+```
+
+**Key Features:**
+- Automatically detects and kills Node.js, npm, Vite, and other UI-related processes
+- Identifies and frees up UI development ports (3000, 5173, etc.)
+- Provides visual confirmation of terminated processes
+- Safe confirmation prompt before executing kills
+- Comprehensive validation of cleanup success
+
+**When to Use:**
+- Before switching between projects to prevent port conflicts
+- When UI servers become unresponsive or stuck
+- Before system restarts to ensure clean shutdown
+- When changing frontend development configurations
+
+**⚠️ Warning**: This script uses `kill -9` to forcefully terminate processes. Always attempt a graceful shutdown first (Ctrl+C in the terminal running the UI server).
+
 ### Docker Development
 ```bash
 # STEP 1: ALWAYS set Java 21 first

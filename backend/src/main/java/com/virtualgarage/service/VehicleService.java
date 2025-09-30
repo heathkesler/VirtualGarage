@@ -29,14 +29,17 @@ public class VehicleService {
     private final VehicleRepository vehicleRepository;
     private final VehicleImageRepository vehicleImageRepository;
     private final MaintenanceRecordRepository maintenanceRecordRepository;
+    private final VehicleImageScrapingService imageScrapingService;
 
     @Autowired
     public VehicleService(VehicleRepository vehicleRepository,
                          VehicleImageRepository vehicleImageRepository,
-                         MaintenanceRecordRepository maintenanceRecordRepository) {
+                         MaintenanceRecordRepository maintenanceRecordRepository,
+                         VehicleImageScrapingService imageScrapingService) {
         this.vehicleRepository = vehicleRepository;
         this.vehicleImageRepository = vehicleImageRepository;
         this.maintenanceRecordRepository = maintenanceRecordRepository;
+        this.imageScrapingService = imageScrapingService;
     }
 
     @Transactional(readOnly = true)
@@ -96,6 +99,32 @@ public class VehicleService {
         // Validate VIN number if provided
         if (vehicleDTO.getVinNumber() != null && vehicleRepository.existsByVinNumber(vehicleDTO.getVinNumber())) {
             throw new IllegalArgumentException("Vehicle with VIN " + vehicleDTO.getVinNumber() + " already exists");
+        }
+        
+        // Auto-scrape vehicle image if none provided
+        if (vehicleDTO.getPrimaryImageUrl() == null || vehicleDTO.getPrimaryImageUrl().trim().isEmpty()) {
+            logger.debug("No image provided, attempting to scrape for: {} {} {}", 
+                vehicleDTO.getYear(), vehicleDTO.getMake(), vehicleDTO.getModel());
+            
+            try {
+                var scrapedImage = imageScrapingService.scrapeVehicleImage(
+                    vehicleDTO.getMake(), 
+                    vehicleDTO.getModel(), 
+                    vehicleDTO.getYear()
+                );
+                
+                if (scrapedImage.isPresent()) {
+                    vehicleDTO.setPrimaryImageUrl(scrapedImage.get());
+                    logger.info("Successfully scraped image for {} {} {}: {}", 
+                        vehicleDTO.getYear(), vehicleDTO.getMake(), vehicleDTO.getModel(), scrapedImage.get());
+                } else {
+                    logger.warn("Failed to scrape image for {} {} {}", 
+                        vehicleDTO.getYear(), vehicleDTO.getMake(), vehicleDTO.getModel());
+                }
+            } catch (Exception e) {
+                logger.error("Error during image scraping for {} {} {}: {}", 
+                    vehicleDTO.getYear(), vehicleDTO.getMake(), vehicleDTO.getModel(), e.getMessage());
+            }
         }
         
         Vehicle vehicle = convertToEntity(vehicleDTO);

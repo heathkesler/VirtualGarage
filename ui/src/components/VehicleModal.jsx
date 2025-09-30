@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader, AlertCircle } from 'lucide-react';
+import { X, Save, Loader, AlertCircle, Camera, Sparkles, Trash2 } from 'lucide-react';
 
-const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
+const VehicleModal = ({ isOpen, onClose, onSave, onDelete = null, vehicle = null }) => {
   const [formData, setFormData] = useState({
     name: '',
     make: '',
@@ -19,6 +19,7 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [imageScrapingStatus, setImageScrapingStatus] = useState('');
 
   useEffect(() => {
     if (vehicle) {
@@ -82,6 +83,7 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
     try {
       setLoading(true);
       setError('');
+      setImageScrapingStatus('');
       
       const vehicleData = {
         ...formData,
@@ -91,6 +93,11 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
         value: formData.value ? parseFloat(formData.value) : 0
       };
       
+      // Show image scraping status if no image URL is provided
+      if (!vehicleData.image || vehicleData.image.trim() === '') {
+        setImageScrapingStatus('Finding the perfect image for your vehicle...');
+      }
+      
       await onSave(vehicleData);
       onClose();
     } catch (err) {
@@ -98,6 +105,7 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
       setError(err.message || 'Failed to save vehicle. Please try again.');
     } finally {
       setLoading(false);
+      setImageScrapingStatus('');
     }
   };
 
@@ -108,7 +116,7 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
       <div className="bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-slate-700">
           <h2 className="text-xl font-semibold text-white">
-            {vehicle ? 'Edit Vehicle' : 'Add New Vehicle'}
+            {vehicle ? 'Vehicle Details' : 'Add New Vehicle'}
           </h2>
           <button
             onClick={onClose}
@@ -124,6 +132,16 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
             <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span className="text-sm">{error}</span>
+            </div>
+          )}
+          
+          {imageScrapingStatus && (
+            <div className="flex items-center gap-2 p-3 bg-primary-500/10 border border-primary-500/20 rounded-lg text-primary-400">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 animate-pulse" />
+                <Camera className="w-4 h-4" />
+              </div>
+              <span className="text-sm">{imageScrapingStatus}</span>
             </div>
           )}
 
@@ -279,7 +297,11 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
 
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Image URL
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4" />
+                  Image URL
+                  <span className="text-xs text-slate-400">(Optional)</span>
+                </div>
               </label>
               <input
                 type="url"
@@ -289,6 +311,10 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="https://example.com/image.jpg"
               />
+              <div className="mt-2 p-2 bg-slate-700/50 rounded text-xs text-slate-400 flex items-center gap-2">
+                <Sparkles className="w-3 h-3 text-primary-400" />
+                <span>Leave empty to automatically find a matching vehicle image</span>
+              </div>
             </div>
           </div>
 
@@ -306,27 +332,45 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle = null }) => {
             />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <Loader className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
+          <div className="flex items-center justify-between pt-4 border-t border-slate-700">
+            <div>
+              {vehicle && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onDelete(vehicle);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                  disabled={loading}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Vehicle
+                </button>
               )}
-              {vehicle ? 'Update Vehicle' : 'Add Vehicle'}
-            </button>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <Loader className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {vehicle ? 'Update Vehicle' : 'Add Vehicle'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

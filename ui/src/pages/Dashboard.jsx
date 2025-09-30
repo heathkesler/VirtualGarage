@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Car, 
   Home, 
@@ -12,6 +12,7 @@ import {
   ChevronRight,
   AlertCircle,
   Loader,
+  Eye,
   Edit2,
   Trash2,
   MoreVertical
@@ -19,8 +20,10 @@ import {
 import apiService from '../services/api';
 import { transformPagedResponse, transformDashboardStatsFromAPI, transformVehicleToAPI } from '../utils/dataTransform';
 import VehicleModal from '../components/VehicleModal';
+import ConfirmModal from '../components/ConfirmModal';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [vehicles, setVehicles] = useState([]);
@@ -29,6 +32,9 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load vehicles and stats on component mount
   useEffect(() => {
@@ -46,7 +52,7 @@ const Dashboard = () => {
       setError(null);
       
       // Load both vehicles and stats in parallel
-      const [vehiclesResponse, statsResponse] = await Promise.all([
+      const [, statsResponse] = await Promise.all([
         loadVehicles(false),
         apiService.getDashboardStats()
       ]);
@@ -120,7 +126,7 @@ const Dashboard = () => {
     setShowVehicleModal(true);
   };
 
-  const handleEditVehicle = (vehicle) => {
+  const handleViewVehicleDetails = (vehicle) => {
     setEditingVehicle(vehicle);
     setShowVehicleModal(true);
   };
@@ -144,18 +150,30 @@ const Dashboard = () => {
     }
   };
 
-  const handleDeleteVehicle = async (vehicleId) => {
-    if (!confirm('Are you sure you want to delete this vehicle?')) {
-      return;
-    }
+  const handleDeleteVehicle = (vehicle) => {
+    setVehicleToDelete(vehicle);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDeleteVehicle = async () => {
+    if (!vehicleToDelete) return;
     
     try {
-      await apiService.deleteVehicle(vehicleId);
+      setDeleting(true);
+      await apiService.deleteVehicle(vehicleToDelete.id);
       await loadData();
+      setShowConfirmModal(false);
+      setVehicleToDelete(null);
     } catch (error) {
       console.error('Error deleting vehicle:', error);
       setError('Failed to delete vehicle. Please try again.');
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const handleEditVehicle = (vehicleId) => {
+    navigate(`/vehicle/edit/${vehicleId}`);
   };
 
   if (loading) {
@@ -315,8 +333,9 @@ const Dashboard = () => {
               <VehicleCard 
                 key={vehicle.id} 
                 vehicle={vehicle} 
-                onEdit={() => handleEditVehicle(vehicle)}
-                onDelete={() => handleDeleteVehicle(vehicle.id)}
+                onViewDetails={() => handleViewVehicleDetails(vehicle)}
+                onEdit={handleEditVehicle}
+                onDelete={() => handleDeleteVehicle(vehicle)}
               />
             ))}
           </div>
@@ -339,7 +358,24 @@ const Dashboard = () => {
           setEditingVehicle(null);
         }}
         onSave={handleSaveVehicle}
+        onDelete={handleDeleteVehicle}
         vehicle={editingVehicle}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => {
+          setShowConfirmModal(false);
+          setVehicleToDelete(null);
+        }}
+        onConfirm={confirmDeleteVehicle}
+        title="Delete Vehicle"
+        message={vehicleToDelete ? `Are you sure you want to delete "${vehicleToDelete.name}"? This action cannot be undone.` : ''}
+        confirmText="Delete Vehicle"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        loading={deleting}
       />
     </div>
   );
@@ -384,8 +420,7 @@ const FilterButton = ({ label, active, onClick }) => (
   </button>
 );
 
-const VehicleCard = ({ vehicle, onEdit, onDelete }) => {
-  const [showActions, setShowActions] = React.useState(false);
+const VehicleCard = ({ vehicle, onViewDetails, onEdit, onDelete }) => {
   
   return (
     <div className="group bg-gradient-to-br from-slate-800/50 to-slate-700/30 backdrop-blur-sm border border-slate-600 rounded-xl overflow-hidden hover:border-slate-500 transition-all duration-300 hover:shadow-xl hover:shadow-slate-900/50">
@@ -412,42 +447,39 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }) => {
           </div>
         </div>
         
-        {/* Action Menu */}
-        <div className="absolute top-3 right-3">
-          <div className="relative">
+        {/* Action Buttons - Always Visible on Hover */}
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="flex gap-2">
             <button
-              onClick={() => setShowActions(!showActions)}
-              className="p-2 bg-black/20 backdrop-blur-sm rounded-full text-white/80 hover:text-white hover:bg-black/40 transition-all opacity-0 group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewDetails?.();
+              }}
+              className="p-2 bg-blue-600/80 backdrop-blur-sm rounded-full text-white hover:bg-blue-600 transition-all shadow-lg"
+              title="View Details"
             >
-              <MoreVertical className="w-4 h-4" />
+              <Eye className="w-4 h-4" />
             </button>
-            
-            {showActions && (
-              <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl z-10 overflow-hidden">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit?.();
-                    setShowActions(false);
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-200 hover:bg-slate-700 transition-colors"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete?.();
-                    setShowActions(false);
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-400 hover:bg-slate-700 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </button>
-              </div>
-            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(vehicle.id);
+              }}
+              className="p-2 bg-green-600/80 backdrop-blur-sm rounded-full text-white hover:bg-green-600 transition-all shadow-lg"
+              title="Edit Vehicle"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(vehicle);
+              }}
+              className="p-2 bg-red-600/80 backdrop-blur-sm rounded-full text-white hover:bg-red-600 transition-all shadow-lg"
+              title="Delete Vehicle"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -469,7 +501,7 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }) => {
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 mb-4">
           {vehicle.tags && vehicle.tags.map((tag) => (
             <span 
               key={tag}
@@ -478,6 +510,40 @@ const VehicleCard = ({ vehicle, onEdit, onDelete }) => {
               {tag}
             </span>
           ))}
+        </div>
+        
+        {/* Action Buttons Bar */}
+        <div className="flex gap-2 pt-4 border-t border-slate-600/50">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails?.();
+            }}
+            className="flex items-center gap-2 flex-1 px-3 py-2 bg-slate-600/50 text-slate-300 rounded-lg hover:bg-slate-600 hover:text-white transition-all text-sm font-medium"
+          >
+            <Eye className="w-4 h-4" />
+            Details
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit?.(vehicle.id);
+            }}
+            className="flex items-center gap-2 flex-1 px-3 py-2 bg-green-600/20 text-green-400 rounded-lg hover:bg-green-600/30 hover:text-green-300 transition-all text-sm font-medium"
+          >
+            <Edit2 className="w-4 h-4" />
+            Edit
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(vehicle);
+            }}
+            className="flex items-center gap-2 flex-1 px-3 py-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 hover:text-red-300 transition-all text-sm font-medium"
+          >
+            <Trash2 className="w-4 h-4" />
+            Remove
+          </button>
         </div>
       </div>
     </div>

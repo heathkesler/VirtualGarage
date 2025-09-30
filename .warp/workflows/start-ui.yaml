@@ -1,0 +1,7 @@
+name: Start UI Development Server
+command: cd ui && npm run dev
+tags:
+  - development
+  - frontend
+  - react
+description: Start the VirtualGarage UI development server with Vite

@@ -111,6 +111,18 @@ virtual-garage:
       image-events: image-events
       user-activity: user-activity
 
+# Vehicle Image Scraping Configuration
+vehicle:
+  image:
+    # Unsplash API configuration (get your free key at https://unsplash.com/developers)
+    unsplash:
+      access-key: ${UNSPLASH_ACCESS_KEY:}
+      # Note: Leave empty for fallback-only mode (recommended for demo/development)
+    scraping:
+      enabled: true
+      timeout: 30000  # 30 seconds
+      fallback-enabled: true
+
 # Logging Configuration
 logging:
   level:
