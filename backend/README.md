@@ -1,283 +1,350 @@
-# Virtual Garage API Backend
+# Virtual Garage API
 
-## Architecture Overview
+A comprehensive backend API for the Virtual Garage application, built with Spring Boot, Apache Camel, Kafka, and PostgreSQL.
 
-The Virtual Garage backend is built using a modern, microservices-inspired architecture with Java and Spring Boot, designed to provide robust APIs for vehicle management, AI-powered parts search, and user interaction.
+## 🚀 Features
 
-## Technology Stack
+- **RESTful API** for vehicle management
+- **PostgreSQL database** with Flyway migrations
+- **Apache Camel** for event processing and integration
+- **Kafka** for event-driven architecture
+- **Comprehensive search and filtering** capabilities
+- **OpenAPI/Swagger documentation**
+- **Docker support** for easy deployment
+- **Health monitoring** with Spring Actuator
 
-### Core Framework
-- **Spring Boot 3.2+** - Main application framework
-- **Spring WebMVC** - REST API development
-- **Spring Data JPA** - Database abstraction layer
-- **Spring Security** - Authentication & authorization
-- **Spring Cache** - Caching abstraction
+## 🛠 Technology Stack
 
-### Integration & Messaging
-- **Apache Camel 4.x** - Enterprise integration patterns
-- **Apache Kafka** - Event streaming and async messaging
-- **Spring Integration** - Message-driven architecture
-
-### Database & Storage
+- **Spring Boot 3.2.0** - Application framework
 - **PostgreSQL** - Primary database
-- **Redis** - Caching and session storage
-- **Amazon S3** - File storage (vehicle photos, part images)
-
-### AI & External Services
-- **OpenAI GPT API** - AI-powered parts recommendations
-- **Elasticsearch** - Advanced search capabilities
-- **Apache HttpClient** - External API integrations
-
-### Development & Operations
-- **Maven** - Build management
-- **Docker** - Containerization
-- **Testcontainers** - Integration testing
-- **Micrometer** - Metrics and observability
+- **Apache Camel 4.2.0** - Integration framework
+- **Apache Kafka** - Event streaming platform
+- **Flyway** - Database migration tool
 - **OpenAPI 3** - API documentation
+- **Maven** - Build tool
 
-## API Modules
+## 📋 Prerequisites
 
-### 1. Authentication Service (`auth-service`)
-- User registration and login
-- JWT token management  
-- Password reset functionality
-- OAuth2 integration support
+Before running the application, ensure you have:
 
-### 2. User Management Service (`user-service`)
-- User profile management
-- Account settings
-- Avatar upload and management
+- Java 17 or later
+- PostgreSQL 12+ running on localhost:5432
+- Apache Kafka running on localhost:9092
+- Maven 3.6+ (or use the included wrapper)
 
-### 3. Garage Management Service (`garage-service`)
-- Virtual garage CRUD operations
-- Garage sharing and collaboration
-- Dashboard analytics
+## 🗄 Database Setup
 
-### 4. Vehicle Service (`vehicle-service`)
-- Vehicle CRUD operations
-- Vehicle specification management
-- VIN decoding integration
-- Vehicle photo management
+1. **Install PostgreSQL** and start the service
+2. **Create database and user**:
+   ```sql
+   CREATE DATABASE virtual_garage;
+   CREATE USER virtual_garage WITH PASSWORD 'garage123';
+   GRANT ALL PRIVILEGES ON DATABASE virtual_garage TO virtual_garage;
+   ```
 
-### 5. Parts Service (`parts-service`)
-- Parts catalog management
-- AI-powered parts search
-- Parts recommendation engine
-- External supplier integrations
+3. **Database migrations** will run automatically on startup via Flyway
 
-### 6. Build Service (`build-service`)
-- Vehicle build management
-- Component tracking
-- Cost calculation
-- Build progress monitoring
+## 📊 Kafka Setup
 
-### 7. Notification Service (`notification-service`)
-- Event-driven notifications
-- Email and push notifications
-- Notification preferences
+1. **Start Kafka** (assuming Kafka is installed):
+   ```bash
+   # Start Zookeeper
+   zookeeper-server-start.sh config/zookeeper.properties
+   
+   # Start Kafka Server
+   kafka-server-start.sh config/server.properties
+   ```
 
-### 8. Integration Service (`integration-service`)
-- External API integrations
-- Data synchronization
-- Third-party service orchestration
+2. **Create topics** (optional - they will be created automatically):
+   ```bash
+   kafka-topics.sh --create --topic vehicle-events --bootstrap-server localhost:9092
+   kafka-topics.sh --create --topic image-events --bootstrap-server localhost:9092
+   kafka-topics.sh --create --topic user-activity --bootstrap-server localhost:9092
+   ```
 
-## API Endpoints Overview
+## 🚀 Running the Application
 
-### Authentication APIs
-```
-POST   /api/v1/auth/register      - User registration
-POST   /api/v1/auth/login         - User login
-POST   /api/v1/auth/logout        - User logout
-POST   /api/v1/auth/refresh       - Token refresh
-POST   /api/v1/auth/reset-password - Password reset
+### Development Mode
+
+```bash
+# Clone and navigate to the backend directory
+cd /path/to/VirtualGarage/backend
+
+# Run with Maven
+mvn spring-boot:run
+
+# Or with specific profile
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-### User Management APIs
-```
-GET    /api/v1/users/me           - Get current user profile
-PUT    /api/v1/users/me           - Update user profile
-POST   /api/v1/users/avatar       - Upload user avatar
-DELETE /api/v1/users/avatar       - Delete user avatar
-```
+### Production Mode
 
-### Garage Management APIs
-```
-GET    /api/v1/garages            - List user's garages
-POST   /api/v1/garages            - Create new garage
-GET    /api/v1/garages/{id}       - Get garage details
-PUT    /api/v1/garages/{id}       - Update garage
-DELETE /api/v1/garages/{id}       - Delete garage
-GET    /api/v1/garages/{id}/dashboard - Get garage dashboard data
+```bash
+# Build the application
+mvn clean package
+
+# Run the JAR file
+java -jar -Dspring.profiles.active=prod target/virtual-garage-api-1.0.0.jar
 ```
 
-### Vehicle Management APIs
-```
-GET    /api/v1/vehicles           - List vehicles (with filtering)
-POST   /api/v1/vehicles           - Create new vehicle
-GET    /api/v1/vehicles/{id}      - Get vehicle details
-PUT    /api/v1/vehicles/{id}      - Update vehicle
-DELETE /api/v1/vehicles/{id}      - Delete vehicle
-POST   /api/v1/vehicles/{id}/photos - Upload vehicle photos
-GET    /api/v1/vehicles/stock     - Get stock vehicle data
-POST   /api/v1/vehicles/decode-vin - Decode VIN number
-```
+## 🔌 API Endpoints
 
-### Parts Search & Management APIs
-```
-GET    /api/v1/parts/search       - AI-powered parts search
-POST   /api/v1/parts/recommend    - Get AI recommendations
-GET    /api/v1/parts/categories   - List part categories
-GET    /api/v1/parts/{id}         - Get part details
-POST   /api/v1/parts/save         - Save part to favorites
-DELETE /api/v1/parts/save/{id}    - Remove saved part
-```
+### Vehicle Management
 
-### Build Management APIs
-```
-GET    /api/v1/builds             - List vehicle builds
-POST   /api/v1/builds             - Create new build
-GET    /api/v1/builds/{id}        - Get build details
-PUT    /api/v1/builds/{id}        - Update build
-DELETE /api/v1/builds/{id}        - Delete build
-POST   /api/v1/builds/{id}/components - Add component to build
-PUT    /api/v1/builds/{id}/components/{cid} - Update component
-DELETE /api/v1/builds/{id}/components/{cid} - Remove component
-GET    /api/v1/builds/{id}/cost   - Calculate build cost
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/vehicles` | Get all vehicles with pagination |
+| GET | `/api/vehicles/{id}` | Get vehicle by ID |
+| POST | `/api/vehicles` | Create new vehicle |
+| PUT | `/api/vehicles/{id}` | Update vehicle |
+| DELETE | `/api/vehicles/{id}` | Soft delete vehicle |
+| GET | `/api/vehicles/search?q={term}` | Search vehicles |
+| GET | `/api/vehicles/filter?type={type}&make={make}` | Filter vehicles |
+| GET | `/api/vehicles/type/{type}` | Get vehicles by type |
+| GET | `/api/vehicles/tag/{tag}` | Get vehicles by tag |
 
-## Event-Driven Architecture
+### Statistics
 
-### Kafka Topics
-- `user.events` - User registration, login, profile updates
-- `vehicle.events` - Vehicle creation, updates, deletions
-- `build.events` - Build modifications, component changes
-- `search.events` - Search queries, AI recommendations
-- `notification.events` - Notification triggers and delivery
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/vehicles/stats/dashboard` | Get dashboard statistics |
+| GET | `/api/vehicles/stats/by-type` | Get stats by vehicle type |
+| GET | `/api/vehicles/stats/by-make` | Get stats by vehicle make |
 
-### Event Producers
-- Authentication events
-- Vehicle lifecycle events
-- Build modification events
-- Search and recommendation events
+### Monitoring
 
-### Event Consumers
-- Notification service
-- Analytics service
-- Audit logging
-- Cache invalidation
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/actuator/health` | Health check |
+| GET | `/api/actuator/metrics` | Application metrics |
+| GET | `/api/swagger-ui.html` | API documentation |
 
-## Security Implementation
+## 📊 Sample API Usage
 
-### JWT Token Strategy
-- Access tokens (15 minutes expiration)
-- Refresh tokens (7 days expiration)
-- Secure HTTP-only cookies for web clients
-- Token blacklisting for logout
-
-### Authorization Levels
-- `USER` - Standard user operations
-- `PREMIUM` - Advanced features access
-- `ADMIN` - Administrative operations
-
-### API Security
-- Rate limiting per user/IP
-- Request validation and sanitization
-- CORS configuration
-- SQL injection prevention
-- XSS protection headers
-
-## AI Integration Architecture
-
-### Parts Recommendation Engine
-```java
-@Component
-public class AIPartsRecommendationService {
-    
-    public List<PartRecommendation> getRecommendations(
-        VehicleSpecs specs, 
-        String searchQuery,
-        BuildContext context
-    ) {
-        // OpenAI GPT integration
-        // Vector similarity search
-        // Filtering and ranking
-    }
-}
+### Create a Vehicle
+```bash
+curl -X POST http://localhost:8080/api/vehicles \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "2024 BMW M4 Competition",
+    "make": "BMW",
+    "model": "M4 Competition",
+    "year": 2024,
+    "type": "Sports Car",
+    "color": "Alpine White",
+    "engine": "Twin-Turbo 3.0L I6",
+    "value": 95000,
+    "status": "Excellent",
+    "tags": ["Performance", "Luxury"]
+  }'
 ```
 
-### Integration Flow (Apache Camel)
-```java
-@Component
-public class PartsSearchRoute extends RouteBuilder {
-    
-    @Override
-    public void configure() {
-        from("direct:search-parts")
-            .to("direct:validate-request")
-            .to("direct:ai-processing")
-            .to("direct:external-catalog-search")
-            .to("direct:aggregate-results")
-            .to("kafka:search.events");
-    }
-}
+### Search Vehicles
+```bash
+curl "http://localhost:8080/api/vehicles/search?q=BMW&page=0&size=10"
 ```
 
-## Database Design
+### Get Dashboard Stats
+```bash
+curl http://localhost:8080/api/vehicles/stats/dashboard
+```
 
-### Key Entities
-- `users` - User accounts and profiles
-- `garages` - Virtual garage containers
-- `vehicles` - Vehicle information and specs
-- `builds` - Vehicle build projects
-- `components` - Individual parts and components
-- `searches` - Search history and preferences
-- `notifications` - User notifications
+## 🎯 Event-Driven Architecture
 
-### Relationships
-- User 1:N Garages
-- Garage 1:N Vehicles  
-- Vehicle 1:N Builds
-- Build 1:N Components
-- User 1:N Saved Parts
+The application uses Kafka for event streaming:
 
-## Caching Strategy
+### Vehicle Events
+- `VEHICLE_CREATED` - When a new vehicle is added
+- `VEHICLE_UPDATED` - When a vehicle is modified
+- `VEHICLE_DELETED` - When a vehicle is deleted
+- `VEHICLE_VIEWED` - When a vehicle is viewed
 
-### Redis Cache Layers
-- **L1**: Frequently accessed user data (15 min TTL)
-- **L2**: Vehicle specifications and stock data (1 hour TTL)
-- **L3**: Parts catalog and search results (30 min TTL)
-- **L4**: AI recommendations cache (24 hour TTL)
+### Image Events
+- `IMAGE_UPLOADED` - When a vehicle image is uploaded
+- `IMAGE_DELETED` - When an image is deleted
+- `IMAGE_SET_PRIMARY` - When an image is set as primary
 
-## Monitoring & Observability
+### User Activity Events
+- `USER_LOGIN` - User authentication events
+- `USER_SEARCH` - Search activity tracking
+- `USER_FILTER` - Filter usage tracking
 
-### Metrics Collection
-- API response times and throughput
-- Database query performance
-- Cache hit/miss ratios
-- AI service response times
-- Kafka message lag
+## 🔄 Apache Camel Routes
 
-### Health Checks
-- Database connectivity
-- Redis availability
-- Kafka broker health
-- External service status
-- AI service availability
+The application includes several Camel routes:
 
-## Deployment Architecture
+- **Vehicle Event Processor** - Processes vehicle lifecycle events
+- **Image Event Processor** - Handles image-related events
+- **User Activity Processor** - Tracks user behavior
+- **File Processor** - Processes uploaded files
+- **Health Check** - Monitors route health
 
-### Docker Containers
-- `virtualgarage-api` - Main API application
-- `virtualgarage-worker` - Background job processor
-- `postgresql` - Database
-- `redis` - Cache and sessions
-- `kafka` - Message broker
-- `elasticsearch` - Search engine
+## 📝 Configuration
 
-### Environment Configuration
-- `application.yml` - Base configuration
-- `application-dev.yml` - Development overrides
-- `application-prod.yml` - Production settings
-- Environment variables for secrets
+### Application Profiles
 
-This architecture provides a scalable, maintainable foundation for the Virtual Garage application with modern Java technologies and best practices.
+- **default** - Basic configuration
+- **dev** - Development settings with debug logging
+- **test** - Test configuration with H2 database
+- **prod** - Production settings with optimized logging
+
+### Key Configuration Properties
+
+```yaml
+# Database
+spring.datasource.url=jdbc:postgresql://localhost:5432/virtual_garage
+spring.datasource.username=virtual_garage
+spring.datasource.password=garage123
+
+# Kafka
+spring.kafka.bootstrap-servers=localhost:9092
+
+# File Upload
+virtual-garage.file.upload-dir=/tmp/virtual-garage/uploads
+virtual-garage.file.max-size=10MB
+
+# CORS
+virtual-garage.cors.allowed-origins=http://localhost:3000,http://localhost:5173
+```
+
+## 🐳 Docker Support
+
+Build and run with Docker:
+
+```bash
+# Build Docker image
+docker build -t virtual-garage-api .
+
+# Run with Docker Compose (includes PostgreSQL and Kafka)
+docker-compose up -d
+```
+
+## 📊 Monitoring and Health Checks
+
+- **Health Endpoint**: `GET /api/actuator/health`
+- **Metrics**: `GET /api/actuator/metrics`
+- **Application Info**: `GET /api/actuator/info`
+- **Prometheus Metrics**: `GET /api/actuator/prometheus`
+
+## 🧪 Testing
+
+```bash
+# Run unit tests
+mvn test
+
+# Run integration tests
+mvn verify
+
+# Run with coverage
+mvn test jacoco:report
+```
+
+## 📚 API Documentation
+
+Interactive API documentation is available at:
+- **Swagger UI**: http://localhost:8080/api/swagger-ui.html
+- **OpenAPI JSON**: http://localhost:8080/api/v3/api-docs
+
+## 🔧 Development
+
+### Code Structure
+
+```
+src/main/java/com/virtualgarage/
+├── config/          # Configuration classes
+├── controller/      # REST controllers
+├── dto/            # Data Transfer Objects
+├── entity/         # JPA entities
+├── repository/     # Data repositories
+├── service/        # Business logic
+├── camel/          # Apache Camel routes
+└── exception/      # Exception handlers
+
+src/main/resources/
+├── db/migration/   # Flyway migration scripts
+└── application.yml # Application configuration
+```
+
+### Building
+
+```bash
+# Clean and compile
+mvn clean compile
+
+# Package without tests
+mvn package -DskipTests
+
+# Full build with tests
+mvn clean package
+```
+
+## 🤝 Integration with Frontend
+
+The API is designed to work seamlessly with the React frontend:
+
+- **CORS configured** for localhost:3000 and localhost:5173
+- **JSON responses** with snake_case field naming
+- **Pagination support** for large datasets
+- **Comprehensive error handling** with meaningful messages
+
+## 📈 Performance Considerations
+
+- **Database indexing** on frequently queried fields
+- **JPA lazy loading** for related entities
+- **Connection pooling** with HikariCP
+- **Pagination** for large result sets
+- **Caching** with Spring Cache (Redis ready)
+
+## 🔐 Security Features
+
+- **Input validation** with Bean Validation
+- **CORS configuration** for frontend integration
+- **SQL injection prevention** with JPA/Hibernate
+- **Soft deletes** for data preservation
+
+## 📋 Roadmap
+
+- [ ] JWT authentication and authorization
+- [ ] Redis caching layer
+- [ ] File upload functionality
+- [ ] Image processing and thumbnails
+- [ ] Advanced analytics and reporting
+- [ ] Kubernetes deployment manifests
+- [ ] GraphQL API support
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Database Connection Failed**
+   - Ensure PostgreSQL is running on port 5432
+   - Check username/password in configuration
+   - Verify database exists
+
+2. **Kafka Connection Issues**
+   - Start Zookeeper before Kafka
+   - Ensure Kafka is running on port 9092
+   - Check topic creation
+
+3. **Port Already in Use**
+   - Change server.port in application.yml
+   - Kill processes using port 8080
+
+### Logs
+
+Check application logs for detailed error information:
+```bash
+# View logs
+tail -f logs/application.log
+
+# Or with specific level
+mvn spring-boot:run -Dlogging.level.com.virtualgarage=DEBUG
+```
+
+## 📧 Support
+
+For questions or issues, please refer to the project documentation or create an issue in the repository.
+
+---
+
+**Virtual Garage API** - Built with ❤️ for automotive enthusiasts

@@ -1,119 +1,225 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: virtualgarage-postgres
-    environment:
-      POSTGRES_DB: virtualgarage
-      POSTGRES_USER: virtualgarage
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    networks:
-      - virtualgarage
-
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: virtualgarage-redis
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - virtualgarage
-
-  # Apache Kafka
+  # Zookeeper - Required for Kafka
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
-    container_name: virtualgarage-zookeeper
+    image: confluentinc/cp-zookeeper:7.4.3
+    hostname: zookeeper
+    container_name: virtual-garage-zookeeper
+    ports:
+      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SYNC_LIMIT: 2
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'ruok' | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
-      - virtualgarage
+      - virtual-garage-network
+    restart: unless-stopped
 
+  # Kafka Message Broker
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
-    container_name: virtualgarage-kafka
+    image: confluentinc/cp-kafka:7.4.3
+    hostname: kafka
+    container_name: virtual-garage-kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
+      - "9101:9101"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
+      # Performance tuning
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+    healthcheck:
+      test: ["CMD", "bash", "-c", "unset JMX_PORT; kafka-topics --bootstrap-server kafka:29092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     volumes:
-      - kafka_data:/var/lib/kafka/data
+      - kafka-data:/var/lib/kafka/data
     networks:
-      - virtualgarage
+      - virtual-garage-network
+    restart: unless-stopped
 
-  # Elasticsearch for search capabilities
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
-    container_name: virtualgarage-elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15.5-alpine
+    hostname: postgres
+    container_name: virtual-garage-postgres
     ports:
-      - "9200:9200"
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: virtual_garage
+      POSTGRES_USER: virtual_garage
+      POSTGRES_PASSWORD: garage123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      # Performance tuning
+      POSTGRES_SHARED_PRELOAD_LIBRARIES: 'pg_stat_statements'
     volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U virtual_garage -d virtual_garage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - virtualgarage
+      - virtual-garage-network
+    restart: unless-stopped
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c random_page_cost=1.1
+      -c temp_file_limit=2GB
+      -c log_min_duration_statement=1000
+      -c log_connections=on
+      -c log_disconnections=on
+      -c log_lock_waits=on
+      -c log_statement=none
+      -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
 
-  # Kibana for Elasticsearch UI (optional)
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.3
-    container_name: virtualgarage-kibana
+  # Virtual Garage API Application
+  virtual-garage-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: virtual-garage-api
+    container_name: virtual-garage-api
     depends_on:
-      - elasticsearch
-    environment:
-      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     ports:
-      - "5601:5601"
-    networks:
-      - virtualgarage
-
-  # MinIO for S3-compatible file storage (development)
-  minio:
-    image: minio/minio:latest
-    container_name: virtualgarage-minio
-    command: server /data --console-address ":9001"
+      - "8080:8080"
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+      SPRING_PROFILES_ACTIVE: docker
+      JAVA_OPTS: >-
+        -server
+        -Xms512m
+        -Xmx1024m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=100
+        -XX:+UseStringDeduplication
+        -XX:+PrintGCDetails
+        -XX:+PrintGCTimeStamps
+        -Djava.awt.headless=true
+        -Djava.security.egd=file:/dev/./urandom
+      # Database wait configuration
+      WAIT_HOSTS: postgres:5432,kafka:29092
+      WAIT_HOSTS_TIMEOUT: 300
+      WAIT_SLEEP_INTERVAL: 5
+      WAIT_HOST_CONNECT_TIMEOUT: 30
     volumes:
-      - minio_data:/data
+      - app-logs:/app/logs
+      - app-uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     networks:
-      - virtualgarage
+      - virtual-garage-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 512M
 
-  # Note: API and Worker services commented out for now
-  # We'll run the application locally using Maven Spring Boot plugin
-  # Uncomment and build Docker images when ready for containerized deployment
+  # Kafka UI (Optional - for development/debugging)
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.1
+    hostname: kafka-ui
+    container_name: virtual-garage-kafka-ui
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: virtual-garage-cluster
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    networks:
+      - virtual-garage-network
+    restart: unless-stopped
+    profiles:
+      - debug
 
+  # PostgreSQL Admin (Optional - for development/debugging)
+  pgadmin:
+    image: dpage/pgadmin4:8.1
+    hostname: pgadmin
+    container_name: virtual-garage-pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8091:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@virtualgarage.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - virtual-garage-network
+    restart: unless-stopped
+    profiles:
+      - debug
+
+# Named volumes for data persistence
 volumes:
-  postgres_data:
-  redis_data:
-  kafka_data:
-  elasticsearch_data:
-  minio_data:
+  postgres-data:
+    driver: local
+    name: virtual-garage-postgres-data
+  kafka-data:
+    driver: local
+    name: virtual-garage-kafka-data
+  app-logs:
+    driver: local
+    name: virtual-garage-app-logs
+  app-uploads:
+    driver: local
+    name: virtual-garage-app-uploads
+  pgadmin-data:
+    driver: local
+    name: virtual-garage-pgadmin-data
 
+# Custom network
 networks:
-  virtualgarage:
+  virtual-garage-network:
     driver: bridge
+    name: virtual-garage-network
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16

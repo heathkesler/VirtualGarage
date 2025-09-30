@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "mcp-server-postgres",
+      "args": [
+        "postgresql://virtual_garage:garage123@localhost:5432/virtual_garage"
+      ],
+      "env": {
+        "POSTGRES_CONNECTION_TIMEOUT": "30",
+        "POSTGRES_STATEMENT_TIMEOUT": "60"
+      }
+    }
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "virtual_garage",
+    "user": "virtual_garage",
+    "password": "garage123",
+    "ssl": false
+  },
+  "features": {
+    "schema_exploration": true,
+    "query_execution": true,
+    "table_introspection": true,
+    "data_modification": true
+  },
+  "security": {
+    "read_only": false,
+    "allowed_schemas": ["public"],
+    "max_query_timeout": 60
+  }
+}

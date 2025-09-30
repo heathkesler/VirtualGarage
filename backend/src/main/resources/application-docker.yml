@@ -1,0 +1,177 @@
+# Docker-specific configuration for Virtual Garage API
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+
+spring:
+  application:
+    name: virtual-garage-api
+    
+  # Docker Database Configuration
+  datasource:
+    url: jdbc:postgresql://postgres:5432/virtual_garage
+    username: virtual_garage
+    password: garage123
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      
+  # JPA Configuration for Docker
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        show_sql: false
+        use_sql_comments: false
+        jdbc:
+          batch_size: 20
+          order_inserts: true
+          order_updates: true
+    show-sql: false
+    
+  # Flyway Configuration for Docker
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    clean-disabled: true
+    
+  # Docker Kafka Configuration
+  kafka:
+    bootstrap-servers: kafka:29092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      batch-size: 16384
+      linger-ms: 5
+      buffer-memory: 33554432
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+    consumer:
+      group-id: virtual-garage-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 500
+      properties:
+        spring.json.trusted.packages: "com.virtualgarage.dto"
+        session.timeout.ms: 30000
+        heartbeat.interval.ms: 10000
+        
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: false
+    deserialization:
+      fail-on-unknown-properties: false
+    property-naming-strategy: SNAKE_CASE
+    time-zone: UTC
+    
+  # Graceful shutdown
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+# Camel Configuration for Docker
+camel:
+  springboot:
+    name: virtual-garage-camel
+    main-run-controller: true
+    shutdown-timeout: 30
+  servlet:
+    mapping:
+      context-path: /camel/*
+
+# Management and Monitoring for Docker
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    db:
+      enabled: true
+    kafka:
+      enabled: true
+
+# Application Specific Configuration for Docker
+virtual-garage:
+  file:
+    upload-dir: /app/uploads
+    max-size: 10MB
+  images:
+    allowed-types: jpg,jpeg,png,gif,webp
+    thumbnail:
+      width: 300
+      height: 200
+  kafka:
+    topics:
+      vehicle-events: vehicle-events
+      image-events: image-events
+      user-activity: user-activity
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:5173,http://host.docker.internal:3000,http://host.docker.internal:5173
+
+# Logging Configuration for Docker
+logging:
+  level:
+    com.virtualgarage: INFO
+    org.springframework.kafka: WARN
+    org.apache.camel: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.flywaydb: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+  file:
+    name: /app/logs/virtual-garage.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 1GB
+
+# OpenAPI Documentation for Docker
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    disable-swagger-default-url: true
+  info:
+    title: Virtual Garage API
+    description: REST API for Virtual Garage application running in Docker
+    version: 1.0.0
+    contact:
+      name: Virtual Garage Team
+      email: support@virtualgarage.com
+
