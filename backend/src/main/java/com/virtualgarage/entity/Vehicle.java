@@ -108,6 +108,10 @@ public class Vehicle {
     @OneToMany(mappedBy = "vehicle", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<MaintenanceRecord> maintenanceRecords = new ArrayList<>();
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+    
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
     
@@ -341,6 +345,14 @@ public class Vehicle {
     
     public void setMaintenanceRecords(List<MaintenanceRecord> maintenanceRecords) {
         this.maintenanceRecords = maintenanceRecords;
+    }
+    
+    public User getUser() {
+        return user;
+    }
+    
+    public void setUser(User user) {
+        this.user = user;
     }
     
     public Boolean getIsActive() {

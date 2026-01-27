@@ -14,10 +14,12 @@
     "test:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.0.0",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^7.9.1"
+    "react-router-dom": "^7.9.1",
+    "sockjs-client": "^1.6.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",

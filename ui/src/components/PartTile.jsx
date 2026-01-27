@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, ExternalLink, Star, CheckCircle, XCircle, Loader, Sparkles, Wrench, ShoppingBag } from 'lucide-react';
+import { Plus, ExternalLink, Star, CheckCircle, XCircle, Loader, Sparkles, Wrench, ShoppingBag, Play, Video } from 'lucide-react';
 
 const PartTile = ({ part, onAdd, isAiGenerated = false }) => {
   const [adding, setAdding] = useState(false);
@@ -150,6 +150,50 @@ const PartTile = ({ part, onAdd, isAiGenerated = false }) => {
               {part.price}
             </div>
           </div>
+
+          {/* Installation Videos */}
+          {part.installationVideos && part.installationVideos.length > 0 && (
+            <div className="border-t border-slate-600/50 pt-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Video className="w-4 h-4 text-primary-400" />
+                <span className="text-slate-300 text-xs font-medium">Installation Videos</span>
+              </div>
+              <div className="space-y-2">
+                {part.installationVideos.slice(0, 3).map((video, index) => (
+                  <a
+                    key={index}
+                    href={video.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-2 bg-slate-600/30 rounded-lg hover:bg-slate-600/50 transition-colors group"
+                  >
+                    <div className="relative w-16 h-10 flex-shrink-0 rounded overflow-hidden bg-slate-700">
+                      {video.thumbnailUrl ? (
+                        <img src={video.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Play className="w-4 h-4 text-slate-500" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Play className="w-4 h-4 text-white" fill="white" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-slate-300 text-xs truncate">{video.title}</p>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        {video.duration && <span>{video.duration}</span>}
+                        {video.isExactMatch && (
+                          <span className="text-green-400">✓ Exact match</span>
+                        )}
+                      </div>
+                    </div>
+                    <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-primary-400" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Where to Buy */}
           {part.whereToBuy && part.whereToBuy.length > 0 && (
