@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: virtualgarage-db
+    environment:
+      POSTGRES_DB: virtual_garage
+      POSTGRES_USER: virtual_garage
+      POSTGRES_PASSWORD: garage123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U virtual_garage -d virtual_garage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - virtualgarage-network
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: virtualgarage-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/virtual_garage
+      SPRING_DATASOURCE_USERNAME: virtual_garage
+      SPRING_DATASOURCE_PASSWORD: garage123
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
+      GROK_API_KEY: ${GROK_API_KEY:-}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - virtualgarage-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: virtualgarage-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - virtualgarage-network
+
+  # Optional: Kafka for event streaming
+  # Uncomment if you want to enable Kafka
+  # zookeeper:
+  #   image: confluentinc/cp-zookeeper:7.5.0
+  #   container_name: virtualgarage-zookeeper
+  #   environment:
+  #     ZOOKEEPER_CLIENT_PORT: 2181
+  #     ZOOKEEPER_TICK_TIME: 2000
+  #   networks:
+  #     - virtualgarage-network
+  #
+  # kafka:
+  #   image: confluentinc/cp-kafka:7.5.0
+  #   container_name: virtualgarage-kafka
+  #   depends_on:
+  #     - zookeeper
+  #   ports:
+  #     - "9092:9092"
+  #   environment:
+  #     KAFKA_BROKER_ID: 1
+  #     KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+  #     KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+  #     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+  #     KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+  #     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  #   networks:
+  #     - virtualgarage-network
+
+volumes:
+  postgres_data:
+
+networks:
+  virtualgarage-network:
+    driver: bridge

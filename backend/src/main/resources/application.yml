@@ -111,6 +111,20 @@ virtual-garage:
       image-events: image-events
       user-activity: user-activity
 
+# LLM Configuration (AI-powered parts search)
+llm:
+  provider: claude  # Options: claude, grok
+  claude:
+    api-key: ${CLAUDE_API_KEY:}
+    model: claude-sonnet-4-20250514
+    max-tokens: 4096
+    timeout-seconds: 60
+  grok:
+    api-key: ${GROK_API_KEY:}
+    model: grok-1
+    max-tokens: 4096
+    timeout-seconds: 60
+
 # Vehicle Image Scraping Configuration
 vehicle:
   image:
@@ -176,15 +190,25 @@ spring:
     activate:
       on-profile: test
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
     driver-class-name: org.h2.Driver
+    username: sa
+    password: 
   jpa:
     hibernate:
       ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false
   kafka:
-    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    bootstrap-servers: localhost:9092
+
+# Disable Camel routes in test mode
+camel:
+  springboot:
+    routes-collector-enabled: false
 
 ---
 # Production Profile

@@ -14,9 +14,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "vehicles", indexes = {
-    @Index(name = "idx_vehicle_year", columnList = "year"),
+    @Index(name = "idx_vehicle_year", columnList = "\"year\""),
     @Index(name = "idx_vehicle_make_model", columnList = "make, model"),
-    @Index(name = "idx_vehicle_type", columnList = "type"),
+    @Index(name = "idx_vehicle_type", columnList = "\"type\""),
     @Index(name = "idx_vehicle_created", columnList = "created_at")
 })
 public class Vehicle {
@@ -39,11 +39,11 @@ public class Vehicle {
     
     @NotNull(message = "Year is required")
     @Positive(message = "Year must be positive")
-    @Column(nullable = false)
+    @Column(name = "\"year\"", nullable = false)
     private Integer year;
     
     @NotBlank(message = "Type is required")
-    @Column(nullable = false, length = 100)
+    @Column(name = "\"type\"", nullable = false, length = 100)
     private String type;
     
     @Column(length = 50)
@@ -69,7 +69,7 @@ public class Vehicle {
     @Column(name = "mileage_unit", length = 10)
     private String mileageUnit = "miles";
     
-    @Column(precision = 12, scale = 2)
+    @Column(name = "\"value\"", precision = 12, scale = 2)
     private BigDecimal value;
     
     @Column(name = "purchase_price", precision = 12, scale = 2)

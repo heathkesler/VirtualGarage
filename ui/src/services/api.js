@@ -109,6 +109,29 @@ class ApiService {
   async getVehicleStatsByMake() {
     return await this.request('/vehicles/stats/by-make');
   }
+
+  // Parts Search API methods (AI-powered)
+  async searchParts(vehicleId, query, options = {}) {
+    return await this.request('/parts/search', {
+      method: 'POST',
+      body: {
+        vehicleId,
+        query,
+        includePricing: options.includePricing ?? true,
+        includeInstallationInfo: options.includeInstallationInfo ?? true,
+        maxResults: options.maxResults ?? 10,
+      },
+    });
+  }
+
+  async quickSearchParts(vehicleId, query, maxResults = 10) {
+    const params = new URLSearchParams({ query, maxResults });
+    return await this.request(`/parts/search/${vehicleId}?${params}`);
+  }
+
+  async getPartsProviders() {
+    return await this.request('/parts/providers');
+  }
 }
 
 // Create and export a singleton instance
