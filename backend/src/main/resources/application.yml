@@ -113,7 +113,7 @@ virtual-garage:
 
 # LLM Configuration (AI-powered parts search)
 llm:
-  provider: claude  # Options: claude, grok
+  provider: ollama  # Options: claude, grok, ollama
   claude:
     api-key: ${CLAUDE_API_KEY:}
     model: claude-sonnet-4-20250514
@@ -124,6 +124,11 @@ llm:
     model: grok-1
     max-tokens: 4096
     timeout-seconds: 60
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    model: ${OLLAMA_MODEL:qwen3:latest}
+    max-tokens: 4096
+    timeout-seconds: 120
 
 # Vehicle Image Scraping Configuration
 vehicle:

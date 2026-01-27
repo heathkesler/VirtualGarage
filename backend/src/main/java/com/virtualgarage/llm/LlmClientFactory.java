@@ -17,11 +17,11 @@ public class LlmClientFactory {
     private final Map<String, LlmClient> clients;
     private final LlmProperties properties;
     
-    public LlmClientFactory(ClaudeLlmClient claudeClient, LlmProperties properties) {
+    public LlmClientFactory(ClaudeLlmClient claudeClient, OllamaLlmClient ollamaClient, LlmProperties properties) {
         this.properties = properties;
         this.clients = Map.of(
-                "claude", claudeClient
-                // Add more clients here: "grok", grokClient
+                "claude", claudeClient,
+                "ollama", ollamaClient
         );
     }
     

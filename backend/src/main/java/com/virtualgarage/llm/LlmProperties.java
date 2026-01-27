@@ -11,10 +11,11 @@ public class LlmProperties {
     /**
      * The active LLM provider to use (claude, grok)
      */
-    private String provider = "claude";
+    private String provider = "ollama";
     
     private Claude claude = new Claude();
     private Grok grok = new Grok();
+    private Ollama ollama = new Ollama();
     
     public String getProvider() {
         return provider;
@@ -38,6 +39,14 @@ public class LlmProperties {
     
     public void setGrok(Grok grok) {
         this.grok = grok;
+    }
+    
+    public Ollama getOllama() {
+        return ollama;
+    }
+    
+    public void setOllama(Ollama ollama) {
+        this.ollama = ollama;
     }
     
     public static class Claude {
@@ -117,6 +126,45 @@ public class LlmProperties {
         
         public void setBaseUrl(String baseUrl) {
             this.baseUrl = baseUrl;
+        }
+        
+        public int getMaxTokens() {
+            return maxTokens;
+        }
+        
+        public void setMaxTokens(int maxTokens) {
+            this.maxTokens = maxTokens;
+        }
+        
+        public int getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+        
+        public void setTimeoutSeconds(int timeoutSeconds) {
+            this.timeoutSeconds = timeoutSeconds;
+        }
+    }
+    
+    public static class Ollama {
+        private String baseUrl = "http://localhost:11434";
+        private String model = "deepseek-coder-v2:latest";
+        private int maxTokens = 4096;
+        private int timeoutSeconds = 120;
+        
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+        
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+        
+        public String getModel() {
+            return model;
+        }
+        
+        public void setModel(String model) {
+            this.model = model;
         }
         
         public int getMaxTokens() {
