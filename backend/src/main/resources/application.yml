@@ -242,6 +242,31 @@ logging:
     com.virtualgarage: DEBUG
 
 ---
+# Docker Profile (PostgreSQL, no Kafka)
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://db:5432/virtual_garage
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+  flyway:
+    enabled: false
+
+# Disable Camel Kafka routes in Docker (no Kafka service)
+camel:
+  springboot:
+    routes-collector-enabled: false
+
+logging:
+  level:
+    com.virtualgarage: INFO
+    org.apache.camel: WARN
+
+---
 # Production Profile
 spring:
   config:
