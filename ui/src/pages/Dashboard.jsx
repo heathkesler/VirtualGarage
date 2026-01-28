@@ -15,7 +15,9 @@ import {
   Eye,
   Edit2,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  Sparkles,
+  MessageCircle
 } from 'lucide-react';
 import apiService from '../services/api';
 import { transformPagedResponse, transformDashboardStatsFromAPI, transformVehicleToAPI } from '../utils/dataTransform';
@@ -224,6 +226,9 @@ const Dashboard = () => {
           <nav className="flex-1 px-4 py-6 space-y-2">
             <NavItem icon={<Home />} label="Dashboard" active />
             <NavItem icon={<Car />} label="My Vehicles" />
+            <Link to="/assistant">
+              <NavItem icon={<Sparkles />} label="AI Assistant" />
+            </Link>
             <NavItem icon={<BarChart3 />} label="Analytics" />
             <NavItem icon={<Settings />} label="Settings" />
           </nav>
@@ -255,13 +260,22 @@ const Dashboard = () => {
               <h1 className="text-2xl font-bold text-white mb-1">My Garage</h1>
               <p className="text-slate-400">Manage and showcase your vehicle collection</p>
             </div>
-            <button 
-              onClick={handleAddVehicle}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-medium hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-lg shadow-primary-500/25"
-            >
-              <Plus className="w-4 h-4" />
-              Add Vehicle
-            </button>
+            <div className="flex items-center gap-3">
+              <Link 
+                to="/assistant"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 border border-slate-700 text-slate-300 rounded-lg font-medium hover:bg-slate-700 hover:text-white transition-all duration-200"
+              >
+                <Sparkles className="w-4 h-4 text-primary-400" />
+                AI Assistant
+              </Link>
+              <button 
+                onClick={handleAddVehicle}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-medium hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-lg shadow-primary-500/25"
+              >
+                <Plus className="w-4 h-4" />
+                Add Vehicle
+              </button>
+            </div>
           </div>
         </header>
 
@@ -290,6 +304,27 @@ const Dashboard = () => {
               positive
             />
           </div>
+
+          {/* AI Assistant Promo Card */}
+          <Link to="/assistant" className="block mb-8">
+            <div className="bg-gradient-to-r from-primary-900/30 via-primary-800/20 to-slate-800/30 border border-primary-700/50 rounded-xl p-6 hover:border-primary-500/50 transition-all duration-300 group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl group-hover:scale-110 transition-transform">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-1">Garage Assistant</h3>
+                    <p className="text-slate-400 text-sm">Get maintenance reminders, troubleshoot issues, find parts, and more</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-primary-400 group-hover:translate-x-1 transition-transform">
+                  <span className="text-sm font-medium">Ask anything</span>
+                  <ChevronRight className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+          </Link>
 
           {/* Search and Filters */}
           <div className="flex flex-col md:flex-row gap-4 mb-8">

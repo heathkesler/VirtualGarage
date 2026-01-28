@@ -4,6 +4,7 @@ import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import VehicleEdit from './pages/VehicleEdit';
 import ForumHome from './pages/forum/ForumHome';
+import Assistant from './pages/Assistant';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="/vehicle/edit/:id" element={<VehicleEdit />} />
         <Route path="/vehicle/new" element={<VehicleEdit />} />
         <Route path="/forum" element={<ForumHome />} />
+        <Route path="/assistant" element={<Assistant />} />
       </Routes>
     </Router>
   );

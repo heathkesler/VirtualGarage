@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Car, Shield, BarChart3, Settings, ArrowRight, Sparkles } from 'lucide-react';
+import { Car, Shield, BarChart3, Settings, ArrowRight, Sparkles, Wrench, MessageCircle } from 'lucide-react';
 
 const Landing = () => {
   return (
@@ -85,9 +85,20 @@ const Landing = () => {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard
-              icon={<Car className="w-8 h-8 text-primary-400" />}
+              icon={<Sparkles className="w-8 h-8 text-primary-400" />}
+              title="AI Garage Assistant"
+              description="Get personalized maintenance reminders, troubleshoot issues, find parts, and get modification recommendations"
+              highlight
+            />
+            <FeatureCard
+              icon={<Car className="w-8 h-8 text-blue-400" />}
               title="Vehicle Management"
               description="Add, edit, and organize your vehicles with detailed specifications and high-quality photos"
+            />
+            <FeatureCard
+              icon={<Wrench className="w-8 h-8 text-orange-400" />}
+              title="Maintenance Tracking"
+              description="Never miss an oil change or service with smart maintenance schedules based on mileage"
             />
             <FeatureCard
               icon={<BarChart3 className="w-8 h-8 text-green-400" />}
@@ -95,24 +106,14 @@ const Landing = () => {
               description="Monitor your collection's value over time with market insights and appreciation tracking"
             />
             <FeatureCard
-              icon={<Shield className="w-8 h-8 text-blue-400" />}
+              icon={<Shield className="w-8 h-8 text-purple-400" />}
               title="Secure Storage"
               description="Your data is safely stored with enterprise-grade security and regular backups"
             />
             <FeatureCard
-              icon={<Settings className="w-8 h-8 text-purple-400" />}
-              title="Custom Categories"
-              description="Organize your collection with custom tags, categories, and filtering options"
-            />
-            <FeatureCard
-              icon={<Sparkles className="w-8 h-8 text-yellow-400" />}
-              title="Beautiful Gallery"
-              description="Showcase your vehicles in a stunning, responsive gallery with smooth animations"
-            />
-            <FeatureCard
-              icon={<BarChart3 className="w-8 h-8 text-red-400" />}
-              title="Analytics"
-              description="Get insights into your collection with detailed analytics and reporting"
+              icon={<MessageCircle className="w-8 h-8 text-yellow-400" />}
+              title="Community Forums"
+              description="Connect with other enthusiasts, share builds, and get advice from the community"
             />
           </div>
         </div>
@@ -157,14 +158,28 @@ const Landing = () => {
   );
 };
 
-const FeatureCard = ({ icon, title, description }) => {
+const FeatureCard = ({ icon, title, description, highlight = false }) => {
   return (
-    <div className="group p-6 bg-gradient-to-br from-slate-800/50 to-slate-700/30 backdrop-blur-sm border border-slate-600 rounded-xl hover:border-slate-500 transition-all duration-300 hover:shadow-xl hover:shadow-slate-900/50">
-      <div className="mb-4 p-3 bg-slate-700/50 rounded-lg w-fit group-hover:bg-slate-600/50 transition-colors">
-        {icon}
+    <div className={`group p-6 backdrop-blur-sm rounded-xl transition-all duration-300 hover:shadow-xl hover:shadow-slate-900/50 ${
+      highlight 
+        ? 'bg-gradient-to-br from-primary-900/40 to-primary-800/20 border-2 border-primary-500/50 hover:border-primary-400/70' 
+        : 'bg-gradient-to-br from-slate-800/50 to-slate-700/30 border border-slate-600 hover:border-slate-500'
+    }`}>
+      <div className={`mb-4 p-3 rounded-lg w-fit transition-colors ${
+        highlight 
+          ? 'bg-gradient-to-br from-primary-500 to-primary-600' 
+          : 'bg-slate-700/50 group-hover:bg-slate-600/50'
+      }`}>
+        {highlight ? React.cloneElement(icon, { className: 'w-8 h-8 text-white' }) : icon}
       </div>
       <h3 className="text-xl font-semibold text-white mb-3">{title}</h3>
       <p className="text-slate-400 leading-relaxed">{description}</p>
+      {highlight && (
+        <div className="mt-4 flex items-center text-primary-400 text-sm font-medium">
+          <span>Try it now</span>
+          <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+        </div>
+      )}
     </div>
   );
 };
