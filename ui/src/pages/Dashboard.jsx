@@ -24,6 +24,82 @@ import { transformPagedResponse, transformDashboardStatsFromAPI, transformVehicl
 import VehicleModal from '../components/VehicleModal';
 import ConfirmModal from '../components/ConfirmModal';
 
+// Demo data for when backend is unavailable
+const DEMO_VEHICLES = [
+  {
+    id: 1,
+    name: '1969 Camaro SS',
+    year: 1969,
+    type: 'Classic',
+    mileage: '45,000 mi',
+    value: '$85,000',
+    status: 'Pristine',
+    tags: ['Classic', 'V8', 'Restored'],
+    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=800&h=600&fit=crop',
+  },
+  {
+    id: 2,
+    name: '2024 Porsche 911 GT3',
+    year: 2024,
+    type: 'Performance',
+    mileage: '3,200 mi',
+    value: '$245,000',
+    status: 'Pristine',
+    tags: ['Performance', 'Track', 'German'],
+    image: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?w=800&h=600&fit=crop',
+  },
+  {
+    id: 3,
+    name: '1987 Porsche 928',
+    year: 1987,
+    type: 'Exotic',
+    mileage: '78,000 mi',
+    value: '$42,000',
+    status: 'Excellent',
+    tags: ['Classic', 'V8', 'Grand Tourer'],
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop',
+  },
+  {
+    id: 4,
+    name: '2022 Tesla Model 3',
+    year: 2022,
+    type: 'Electric',
+    mileage: '12,000 mi',
+    value: '$35,000',
+    status: 'Excellent',
+    tags: ['Electric', 'Sedan', 'Daily'],
+    image: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800&h=600&fit=crop',
+  },
+  {
+    id: 5,
+    name: '1985 Chevrolet Camaro Z28',
+    year: 1985,
+    type: 'Classic',
+    mileage: '62,000 mi',
+    value: '$18,000',
+    status: 'Excellent',
+    tags: ['Classic', 'V8', '3rd Gen'],
+    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=800&h=600&fit=crop',
+  },
+  {
+    id: 6,
+    name: '1978 Corvette Stingray',
+    year: 1978,
+    type: 'Classic',
+    mileage: '55,000 mi',
+    value: '$32,000',
+    status: 'Excellent',
+    tags: ['Classic', 'V8', 'C3'],
+    image: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&h=600&fit=crop',
+  },
+];
+
+const DEMO_STATS = {
+  totalVehicles: DEMO_VEHICLES.length,
+  totalValue: 457000,
+  avgValue: () => 457000 / DEMO_VEHICLES.length,
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState('all');
@@ -32,6 +108,7 @@ const Dashboard = () => {
   const [garageStats, setGarageStats] = useState({ totalVehicles: 0, totalValue: 0, avgValue: () => 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [demoMode, setDemoMode] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -43,10 +120,30 @@ const Dashboard = () => {
     loadData();
   }, []);
 
-  // Load data when search term or filter changes
+  // Filter demo data locally when search/filter changes in demo mode
   useEffect(() => {
-    loadVehicles();
+    if (demoMode) {
+      filterDemoData();
+    } else {
+      loadVehicles();
+    }
   }, [searchTerm, selectedFilter]);
+
+  const filterDemoData = () => {
+    let filtered = [...DEMO_VEHICLES];
+    
+    if (selectedFilter !== 'all') {
+      const filterMap = { 'classic': 'Classic', 'performance': 'Performance', 'electric': 'Electric', 'exotic': 'Exotic' };
+      filtered = filtered.filter(v => v.type === filterMap[selectedFilter] || (v.tags && v.tags.includes(filterMap[selectedFilter])));
+    }
+    
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(v => v.name.toLowerCase().includes(term) || v.type.toLowerCase().includes(term));
+    }
+    
+    setVehicles(filtered);
+  };
 
   const loadData = async () => {
     try {
@@ -63,8 +160,12 @@ const Dashboard = () => {
         setGarageStats(transformDashboardStatsFromAPI(statsResponse));
       }
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
+      console.error('Backend unavailable, using demo data:', err);
+      // Fall back to demo data
+      setDemoMode(true);
+      setVehicles(DEMO_VEHICLES);
+      setGarageStats(DEMO_STATS);
+      setError(null);
     } finally {
       setLoading(false);
     }
@@ -112,8 +213,11 @@ const Dashboard = () => {
       return response;
     } catch (err) {
       console.error('Error loading vehicles:', err);
-      if (showLoading) {
-        setError('Failed to load vehicles. Please try again.');
+      if (!demoMode && showLoading) {
+        // If not already in demo mode, switch to it
+        setDemoMode(true);
+        setVehicles(DEMO_VEHICLES);
+        setGarageStats(DEMO_STATS);
       }
       return null;
     } finally {
@@ -253,6 +357,15 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <div className="ml-64">
+        {/* Demo Mode Banner */}
+        {demoMode && (
+          <div className="bg-amber-500/10 border-b border-amber-500/30 px-6 py-2">
+            <p className="text-amber-400 text-sm text-center">
+              🎭 Demo Mode — Backend API not connected. Showing sample data.
+            </p>
+          </div>
+        )}
+
         {/* Header */}
         <header className="bg-slate-900/50 backdrop-blur-sm border-b border-slate-800 px-6 py-4">
           <div className="flex items-center justify-between">
